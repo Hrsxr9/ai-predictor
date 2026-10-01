@@ -1,0 +1,1 @@
+"""Logika aplikasi AI Price Predictor, seluruhnya berjalan lokal."""
