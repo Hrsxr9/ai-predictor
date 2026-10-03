@@ -29,7 +29,7 @@ class DataValidationError(ValueError):
 
 
 def read_csv(source: Path | str | bytes) -> pd.DataFrame:
-    """Baca CSV UTF-8 dengan pemisah koma, titik koma, tab, atau pipa."""
+    """Baca CSV dengan pemisah umum dan fallback yang tahan terhadap Sniffer yang keliru."""
     if not isinstance(source, bytes):
         source = Path(source)
         if source.stat().st_size > MAX_BYTES:
@@ -37,22 +37,53 @@ def read_csv(source: Path | str | bytes) -> pd.DataFrame:
         source = source.read_bytes()
     if len(source) > MAX_BYTES:
         raise ValueError("CSV terlalu besar. Maksimum 10 MB.")
-    try:
-        contents = source.decode("utf-8-sig")
+
+    encodings = ("utf-8-sig", "utf-16", "cp1252")
+    last_error = None
+    for encoding in encodings:
         try:
-            separator = csv.Sniffer().sniff(contents[:8192], delimiters=",;\t|").delimiter
+            contents = source.decode(encoding)
+        except UnicodeDecodeError as exc:
+            last_error = exc
+            continue
+
+        candidates = []
+        try:
+            sniffed = csv.Sniffer().sniff(contents[:16384], delimiters=",;\\t|").delimiter
+            candidates.append(sniffed)
         except csv.Error:
-            header = next((line for line in contents.splitlines() if line.strip()), "")
-            separator = max(",;\t|", key=header.count) if header else ","
-        frame = pd.read_csv(
-            StringIO(contents), sep=separator, dtype=str, keep_default_na=False,
-            nrows=MAX_ROWS + 1,
-        )
-    except (UnicodeError, pd.errors.ParserError, pd.errors.EmptyDataError) as exc:
-        raise ValueError("CSV tidak dapat dibaca. Gunakan UTF-8, header kolom, dan pemisah koma/titik koma/tab/pipa yang konsisten.") from exc
-    if len(frame) > MAX_ROWS:
-        raise ValueError("Maksimum 50.000 baris untuk aplikasi lokal versi ini.")
-    return frame
+            pass
+        candidates.extend([",", ";", "\\t", "|"])
+
+        seen = set()
+        for separator in candidates:
+            if separator in seen:
+                continue
+            seen.add(separator)
+            try:
+                frame = pd.read_csv(
+                    StringIO(contents),
+                    sep=separator,
+                    dtype=str,
+                    keep_default_na=False,
+                    nrows=MAX_ROWS + 1,
+                    engine="python",
+                    on_bad_lines="error",
+                )
+                # A real CSV used by this project should expose multiple columns.
+                # Prefer the first consistent parse with the most useful width.
+                if frame.shape[1] >= 2:
+                    if len(frame) > MAX_ROWS:
+                        raise ValueError("Maksimum 50.000 baris untuk aplikasi lokal versi ini.")
+                    return frame
+            except (pd.errors.ParserError, pd.errors.EmptyDataError, ValueError) as exc:
+                last_error = exc
+
+    raise ValueError(
+        "CSV tidak dapat dibaca. Pastikan file memiliki header yang benar dan "
+        "pemisah koma (;), titik koma, tab, atau pipa yang konsisten. "
+        "File Excel sebaiknya diekspor ulang sebagai CSV UTF-8."
+    ) from last_error
 
 
 def clean_data(raw: pd.DataFrame, derive_previous_price: bool = False,
