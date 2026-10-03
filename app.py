@@ -6,8 +6,14 @@ import pandas as pd
 import streamlit as st
 
 from src.generate_data import generate_dataset
-from src.import_data import import_dataset, suggest_mapping, DATE_FORMATS, NUMBER_FORMATS
-from src.preprocessing import DEFAULT_DATA, clean_data, dataset_fingerprint, rupiah
+from src.import_data import import_dataset, suggest_mapping
+from src.preprocessing import (
+    DEFAULT_DATA,
+    clean_data,
+    dataset_fingerprint,
+    read_csv,
+    rupiah,
+)
 from src.predict import predict_price
 from src.train import (
     BASELINE_NAME,
@@ -32,9 +38,14 @@ def load_active_data(uploaded=None):
         raw = pd.read_csv(DEFAULT_DATA)
         frame, report = clean_data(raw)
         return frame, report, "Dataset contoh"
-    raw = pd.read_csv(uploaded)
+
+    # Uploaded CSV must use the same parser as the CLI/library path.
+    # It auto-detects comma, semicolon, tab, and pipe separators and
+    # enforces the same UTF-8/size/row limits.
+    raw = read_csv(uploaded.getvalue())
     mapping = suggest_mapping(raw.columns)
     st.sidebar.caption("Pemetaan otomatis: periksa sebelum digunakan.")
+
     with st.sidebar.form("mapping_form"):
         selected = {}
         labels = {
@@ -56,10 +67,12 @@ def load_active_data(uploaded=None):
                 key=f"map_{key}",
             )
         submitted = st.form_submit_button("Gunakan CSV")
+
     if not submitted:
         st.dataframe(raw.head(10), use_container_width=True, hide_index=True)
         st.info("Pilih kolom di sidebar lalu klik Gunakan CSV.")
         return None
+
     frame, report = import_dataset(raw, selected)
     return frame, report, uploaded.name
 
@@ -73,7 +86,12 @@ def main():
     with st.sidebar:
         st.header("Dataset")
         source = st.radio("Sumber", ["Dataset contoh", "Upload CSV"])
-        uploaded = st.file_uploader("CSV", type=["csv"], disabled=source != "Upload CSV")
+        uploaded = st.file_uploader(
+            "CSV",
+            type=["csv"],
+            disabled=source != "Upload CSV",
+            help="CSV UTF-8 hingga 10 MB dan 50.000 baris. Koma, titik koma, tab, dan pipa didukung.",
+        )
         st.divider()
         page = st.radio(
             "Menu",
@@ -83,7 +101,7 @@ def main():
     uploaded_obj = uploaded if source == "Upload CSV" else None
     try:
         active = load_active_data(uploaded_obj)
-    except (OSError, ValueError) as exc:
+    except (OSError, UnicodeError, ValueError) as exc:
         st.error(str(exc))
         return
     if active is None:
