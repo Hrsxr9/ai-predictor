@@ -85,6 +85,8 @@ PowerShell:
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
+(jika di atas ini tidak bisa maka run, dibawah ini)
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 ```
 
 Kalau PowerShell menolak script, tidak perlu mengubah execution policy. Gunakan executable Python dari folder `.venv` langsung seperti pada langkah berikutnya.
