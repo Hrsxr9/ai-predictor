@@ -13,7 +13,7 @@ DEFAULT_DATA = ROOT / "data" / "historical_prices.csv"
 DEFAULT_MODEL = ROOT / "models" / "model.pkl"
 COLUMNS = ["date", "product", "category", "previous_price", "demand", "price"]
 REQUIRED_COLUMNS = [column for column in COLUMNS if column != "demand"]
-NUMERIC_FEATURES = ["year", "month", "day", "previous_price", "demand"]
+NUMERIC_FEATURES = ["year", "month", "day", "previous_price", "previous_demand"]
 CATEGORICAL_FEATURES = ["product", "category"]
 MAX_ROWS = 50_000
 MAX_BYTES = 10 * 1024 * 1024
@@ -49,11 +49,11 @@ def read_csv(source: Path | str | bytes) -> pd.DataFrame:
 
         candidates = []
         try:
-            sniffed = csv.Sniffer().sniff(contents[:16384], delimiters=",;\\t|").delimiter
+            sniffed = csv.Sniffer().sniff(contents[:16384], delimiters=",;\t|").delimiter
             candidates.append(sniffed)
         except csv.Error:
             pass
-        candidates.extend([",", ";", "\\t", "|"])
+        candidates.extend([",", ";", "\t", "|"])
 
         seen = set()
         for separator in candidates:
@@ -70,8 +70,6 @@ def read_csv(source: Path | str | bytes) -> pd.DataFrame:
                     engine="python",
                     on_bad_lines="error",
                 )
-                # A real CSV used by this project should expose multiple columns.
-                # Prefer the first consistent parse with the most useful width.
                 if frame.shape[1] >= 2:
                     if len(frame) > MAX_ROWS:
                         raise ValueError("Maksimum 50.000 baris untuk aplikasi lokal versi ini.")
@@ -86,8 +84,11 @@ def read_csv(source: Path | str | bytes) -> pd.DataFrame:
     ) from last_error
 
 
-def clean_data(raw: pd.DataFrame, derive_previous_price: bool = False,
-               duplicate_policy: str = "reject") -> tuple[pd.DataFrame, dict]:
+def clean_data(
+    raw: pd.DataFrame,
+    derive_previous_price: bool = False,
+    duplicate_policy: str = "reject",
+) -> tuple[pd.DataFrame, dict]:
     """Bersihkan aturan tetap; imputasi median baru dilakukan saat training."""
     frame = raw.copy()
     if duplicate_policy not in {"reject", "mean", "median"}:
@@ -98,12 +99,14 @@ def clean_data(raw: pd.DataFrame, derive_previous_price: bool = False,
     missing = sorted(set(REQUIRED_COLUMNS) - set(frame.columns))
     if missing:
         raise ValueError("Kolom wajib belum tersedia: " + ", ".join(missing))
+
     report = {"rows_in": len(frame), "demand_added": "demand" not in frame}
     if len(frame) > MAX_ROWS:
         raise ValueError("Maksimum 50.000 baris.")
     if "demand" not in frame:
         frame["demand"] = np.nan
     frame = frame[COLUMNS].copy()
+
     for column in ["product", "category"]:
         frame[column] = frame[column].fillna("").astype(str).str.strip()
     report["category_filled"] = int(frame["category"].eq("").sum())
@@ -115,68 +118,95 @@ def clean_data(raw: pd.DataFrame, derive_previous_price: bool = False,
         dates = frame["date"].fillna("").astype(str).str.strip()
     frame["date"] = pd.to_datetime(
         dates.where(dates.str.fullmatch(r"\d{4}-\d{2}-\d{2}", na=False)),
-        format="%Y-%m-%d", errors="coerce",
+        format="%Y-%m-%d",
+        errors="coerce",
     )
+
     for column in ["previous_price", "demand", "price"]:
         numbers = pd.to_numeric(frame[column], errors="coerce").astype(float)
         valid = np.isfinite(numbers) & numbers.le(MAX_VALUE)
         valid &= numbers.ge(0) if column == "demand" else numbers.gt(0)
         frame[column] = numbers.where(valid, np.nan)
 
-    checks = {"Tanggal tidak terbaca": frame["date"].isna(),
-              "Produk kosong": frame["product"].eq(""), "Harga tidak valid": frame["price"].isna()}
+    checks = {
+        "Tanggal tidak terbaca": frame["date"].isna(),
+        "Produk kosong": frame["product"].eq(""),
+        "Harga tidak valid": frame["price"].isna(),
+    }
     report["invalid_dates"] = int(checks["Tanggal tidak terbaca"].sum())
     report["invalid_products"] = int(checks["Produk kosong"].sum())
     report["invalid_prices"] = int(checks["Harga tidak valid"].sum())
     invalid = checks["Tanggal tidak terbaca"] | checks["Produk kosong"] | checks["Harga tidak valid"]
+
     reasons = pd.Series("", index=frame.index)
     for label, mask in checks.items():
         reasons.loc[mask] += label + "; "
     report["rejected_preview"] = pd.DataFrame({
-        "Baris CSV": np.arange(len(frame)) + 2, "Alasan": reasons.str.rstrip("; "),
+        "Baris CSV": np.arange(len(frame)) + 2,
+        "Alasan": reasons.str.rstrip("; "),
     }, index=frame.index).loc[invalid].head(10)
     report["invalid_rows"] = int(invalid.sum())
     frame = frame.loc[~invalid].copy()
+
     report["duplicate_rows"] = int(frame.duplicated().sum())
     frame = frame.drop_duplicates()
     conflicts = frame.duplicated(["date", "product"], keep=False)
     report["conflicting_rows"] = 0
     report["aggregated_rows"] = 0
+
     if duplicate_policy == "reject":
         report["conflicting_rows"] = int(conflicts.sum())
         frame = frame.loc[~conflicts]
     elif conflicts.any():
         if (frame.groupby(["date", "product"])["category"].nunique() > 1).any():
-            raise ValueError("Kategori berbeda untuk produk-tanggal yang sama. Perbaiki nama produk/pemetaan sebelum menggabungkan harga.")
+            raise ValueError(
+                "Kategori berbeda untuk produk-tanggal yang sama. "
+                "Perbaiki nama produk/pemetaan sebelum menggabungkan harga."
+            )
         before = len(frame)
         frame = frame.groupby(["date", "product"], as_index=False).agg({
-            "category": "first", "price": duplicate_policy, "demand": duplicate_policy,
+            "category": "first",
+            "price": duplicate_policy,
+            "demand": duplicate_policy,
             "previous_price": duplicate_policy,
         })
         report["aggregated_rows"] = before - len(frame)
         derive_previous_price = True
+
     frame = frame.sort_values(["date", "product"]).reset_index(drop=True)
+
+    # previous_price dan previous_demand harus berasal dari masa lalu.
+    # Jika previous_price tidak disediakan atau data digabung, turunkan otomatis dari histori harga.
     if derive_previous_price:
         frame["previous_price"] = frame.groupby("product", sort=False)["price"].shift(1)
+
+    frame["previous_demand"] = frame.groupby("product", sort=False)["demand"].shift(1)
+
     report["previous_price_derived"] = derive_previous_price
     report["previous_price_missing"] = int(frame["previous_price"].isna().sum())
+    report["previous_demand_missing"] = int(frame["previous_demand"].isna().sum())
     report["demand_missing"] = int(frame["demand"].isna().sum())
     report["rows_out"] = len(frame)
     report["rows_removed"] = len(raw) - len(frame)
+
     if frame.empty:
         raise DataValidationError(
-            f"Tidak ada baris valid dari {len(raw)} baris: {report['invalid_dates']} tanggal tidak terbaca, "
-            f"{report['invalid_products']} produk kosong, {report['invalid_prices']} harga tidak valid, "
+            f"Tidak ada baris valid dari {len(raw)} baris: "
+            f"{report['invalid_dates']} tanggal tidak terbaca, "
+            f"{report['invalid_products']} produk kosong, "
+            f"{report['invalid_prices']} harga tidak valid, "
             f"{report['conflicting_rows']} baris konflik produk-tanggal. "
             "Periksa contoh baris di bawah. Untuk konflik dari barang dan satuan yang sama, "
-            "pilih gabungkan rata-rata/median; jika barang berbeda, perbaiki kolom produk.", report,
+            "pilih gabungkan rata-rata/median; jika barang berbeda, perbaiki kolom produk.",
+            report,
         )
+
     return frame, report
 
 
 def make_features(frame: pd.DataFrame) -> pd.DataFrame:
-    """Fungsi yang sama dipanggil saat training, pengujian, dan prediksi."""
-    result = frame[["product", "category", "previous_price", "demand"]].copy()
+    """Feature training, evaluasi, dan prediksi dibuat dari informasi masa lalu."""
+    result = frame[["product", "category", "previous_price", "previous_demand"]].copy()
     dates = pd.to_datetime(frame["date"], errors="raise")
     result["year"] = dates.dt.year
     result["month"] = dates.dt.month
