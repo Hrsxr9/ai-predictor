@@ -1,246 +1,22 @@
 # AI Price Predictor
 
-**AI Price Predictor** adalah aplikasi berbasis **Python + Streamlit + Scikit-learn** untuk memperkirakan **harga produk pada periode berikutnya** berdasarkan pola data historis. Sistem menerima dataset dalam format **CSV, XLSX, dan XLS**.
+**AI Price Predictor** adalah aplikasi **Python + Streamlit + Scikit-learn** untuk memperkirakan **harga produk pada periode berikutnya berdasarkan data historis**. Aplikasi mendukung dataset **CSV, XLSX, dan XLS**.
 
-Project ini dibuat untuk mata kuliah **Kecerdasan Buatan** dan berjalan **full local**, tanpa OpenAI API, Gemini API, OpenRouter, atau layanan AI eksternal.
+Project ini dibuat untuk mata kuliah **Kecerdasan Buatan** dan berjalan secara lokal tanpa API AI eksternal.
 
-## Konsep Utama
+## 1. Konsep Sistem
 
-Pertanyaan yang dijawab sistem:
+Pertanyaan utama yang dijawab sistem:
 
-> **"Berdasarkan riwayat harga suatu produk, berapa estimasi harga pada periode berikutnya?"**
+> **Berdasarkan riwayat suatu produk, berapa estimasi harganya pada periode berikutnya?**
 
-Target machine learning:
-
-`price` = harga aktual produk pada periode yang dipelajari.
-
-Fitur yang digunakan:
-
-- `year`, `month`, `day`
-- `previous_price` = harga produk pada periode sebelumnya
-- `previous_demand` = demand pada periode sebelumnya
-- `product`
-- `category`
-
-Sistem **tidak meminta demand masa depan**. Demand yang digunakan sebagai fitur berasal dari periode sebelumnya. Bila data demand tidak tersedia, fitur tersebut dapat diisi otomatis dan akan ditangani saat training.
-
-## Fitur
-
-- Membaca dataset harga historis dari CSV
-- Validasi dan preprocessing data
-- Feature engineering dari tanggal
-- Membuat fitur historis `previous_price` dan `previous_demand`
-- Perbandingan Random Forest Regressor, Linear Regression, dan baseline harga sebelumnya
-- Evaluasi dengan MAE, MSE, RMSE, dan R²
-- **Prediksi otomatis periode berikutnya**
-- Visualisasi tren harga
-- Import CSV dengan pemetaan kolom
-- Dataset demonstrasi sintetis yang dibuat lokal
-
-## Teknologi
-
-- Python 3.12
-- Streamlit
-- Pandas
-- NumPy
-- Scikit-learn
-- Joblib
-- Matplotlib
-
-## Struktur Project
+Target model:
 
 ```text
-ai-predictor/
-├── app.py                  # Entry point aplikasi Streamlit
-├── requirements.txt        # Dependency Python
-├── run.bat                 # Shortcut Windows untuk menjalankan aplikasi
-├── README.md
-├── PRESENTASI.md           # Materi penjelasan/presentasi project
-├── src/
-│   ├── preprocessing.py    # Validasi, cleaning, feature engineering
-│   ├── import_data.py      # Import dan mapping CSV
-│   ├── auto_import.py      # Deteksi format tanggal/angka
-│   ├── train.py            # Training dan evaluasi model
-│   ├── predict.py          # Prediksi periode berikutnya
-│   ├── generate_data.py    # Generator dataset demo sintetis
-│   └── __init__.py
-├── data/                   # Dataset demo dibuat otomatis saat diperlukan
-└── models/                 # Model terlatih disimpan lokal
+price = harga aktual produk pada periode target
 ```
 
-## Cara Menjalankan di Windows
-
-### 1. Clone repository
-
-Buka PowerShell:
-
-```powershell
-git clone https://github.com/Hrsxr9/ai-predictor.git
-cd ai-predictor
-```
-
-### 2. Cek Python
-
-Project ini ditujukan untuk Python 3.12.
-
-```powershell
-py -3.12 --version
-```
-
-### 3. Buat virtual environment
-
-```powershell
-py -3.12 -m venv .venv
-```
-
-### 4. Aktifkan virtual environment
-
-PowerShell:
-
-```powershell
-.\.venv\Scripts\Activate.ps1
-```
-
-Kalau PowerShell menolak script, tidak perlu mengubah execution policy. Gunakan executable Python dari folder `.venv` secara langsung.
-
-### 5. Install dependency
-
-Jika venv sudah aktif:
-
-```powershell
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-```
-
-Tanpa aktivasi:
-
-```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-```
-
-### 6. Jalankan aplikasi
-
-```powershell
-python -m streamlit run app.py
-```
-
-Tanpa mengaktifkan venv:
-
-```powershell
-.\.venv\Scripts\python.exe -m streamlit run app.py
-```
-
-Biasanya aplikasi dapat dibuka di:
-
-```text
-http://localhost:8501
-```
-
-### Cara paling gampang di Windows
-
-Setelah repository selesai di-clone, jalankan:
-
-```text
-run.bat
-```
-
-Script akan membuat `.venv` bila belum ada, memasang dependency, lalu menjalankan Streamlit.
-
-## Urutan Demo dari Nol
-
-```text
-1. Clone repository
-        ↓
-2. Buat .venv
-        ↓
-3. Install requirements.txt
-        ↓
-4. Jalankan app.py dengan Streamlit
-        ↓
-5. Dataset contoh otomatis dibuat bila belum ada
-        ↓
-6. Buka menu "Training Model"
-        ↓
-7. Klik "Latih model"
-        ↓
-8. Buka menu "Prediksi Periode Berikutnya"
-        ↓
-9. Pilih produk
-        ↓
-10. Klik "Prediksi Harga Berikutnya"
-        ↓
-11. Tampilkan estimasi harga periode berikutnya
-```
-
-## Skenario Prediksi
-
-Misalnya data terakhir suatu produk adalah:
-
-```text
-Produk          : Beras Medium
-Periode terakhir: Juli 2026
-Harga terakhir  : Rp15.000
-Demand terakhir : 950
-```
-
-Saat tombol prediksi dijalankan, sistem otomatis membuat:
-
-```text
-Target periode: Agustus 2026
-previous_price = Rp15.000
-previous_demand = 950
-```
-
-Model kemudian menghasilkan:
-
-```text
-Estimasi harga Agustus 2026 = hasil prediksi Random Forest
-```
-
-Jadi pengguna **tidak perlu menebak atau mengisi data masa depan**.
-
-## Upload Dataset CSV atau Excel
-
-Pengguna dapat mengunggah `.csv`, `.xlsx`, atau `.xls`.
-
-Untuk CSV, delimiter koma, titik koma, tab, atau pipa dideteksi otomatis. Untuk Excel, sistem membaca workbook dan memilih worksheet yang paling layak berdasarkan jumlah kolom dan jumlah baris berisi data.
-
-Nama kolom tidak harus persis sama. Pemetaan otomatis mengenali variasi umum seperti `tanggal` / `date`, `nama_barang` / `produk`, `harga_jual` / `harga`, dan `qty` / `jumlah_terjual` sebagai kandidat fitur demand.
-
-Minimal dataset memiliki **tanggal, produk, dan harga aktual**. Kategori dan demand bersifat opsional. Jika `previous_price` tidak tersedia, sistem menurunkannya dari riwayat harga per produk. Jika demand tersedia, sistem menggunakan demand periode sebelumnya sebagai `previous_demand`.
-
-Struktur Excel dapat sama seperti contoh CSV di bagian berikutnya. Workbook dengan beberapa sheet tidak perlu dipisahkan manual; aplikasi akan memilih sheet yang paling layak.
-
-## Menggunakan Dataset Sendiri
-
-Minimal dataset harus memiliki:
-
-- tanggal
-- produk
-- harga aktual
-
-Kolom kategori, harga sebelumnya, dan demand dapat digunakan jika tersedia.
-
-Contoh:
-
-```csv
-date,product,category,previous_price,demand,price
-2025-01-01,Beras,Sembako,13000,820,13150
-2025-02-01,Beras,Sembako,13150,850,13300
-2025-03-01,Beras,Sembako,13300,870,13450
-```
-
-Jika `previous_price` tidak tersedia, sistem dapat menurunkannya otomatis dari harga historis. Jika demand tersedia, sistem juga otomatis membuat `previous_demand` berdasarkan periode sebelumnya.
-
-## Konsep Machine Learning
-
-### Target
-
-```text
-price
-```
-
-### Fitur
+Fitur model:
 
 ```text
 year
@@ -252,79 +28,375 @@ product
 category
 ```
 
-### Algoritma utama
+`previous_price` dan `previous_demand` berasal dari periode sebelumnya sehingga sistem tidak meminta informasi masa depan.
+
+## 2. Alur AI
+
+```text
+Dataset historis
+      ↓
+Preprocessing
+      ↓
+Feature Engineering
+      ↓
+Pembagian train/test berdasarkan waktu
+      ↓
+Training Random Forest
+      ↓
+Evaluasi
+      ↓
+Model terlatih
+      ↓
+Data terakhir produk
+      ↓
+Periode berikutnya
+      ↓
+Estimasi harga
+```
+
+## 3. Fitur Aplikasi
+
+- Dashboard dan grafik tren harga
+- Upload dataset CSV / XLSX / XLS
+- Pemetaan kolom otomatis
+- Deteksi format tanggal dan angka
+- Validasi dan preprocessing
+- Training Random Forest Regressor
+- Perbandingan Linear Regression dan baseline
+- Evaluasi MAE, MSE, RMSE, dan R²
+- Prediksi otomatis periode berikutnya
+- Perhitungan perubahan harga dan persentase
+
+## 4. Teknologi
+
+- Python 3.12
+- Streamlit
+- Pandas
+- NumPy
+- Scikit-learn
+- Joblib
+- Matplotlib
+- openpyxl
+- xlrd
+
+## 5. Struktur Project
+
+```text
+ai-predictor/
+├── app.py
+├── requirements.txt
+├── run.bat
+├── README.md
+├── PRESENTASI.md
+├── src/
+│   ├── preprocessing.py
+│   ├── import_data.py
+│   ├── auto_import.py
+│   ├── train.py
+│   ├── predict.py
+│   ├── generate_data.py
+│   └── __init__.py
+├── data/
+└── models/
+```
+
+## 6. Instalasi dan Menjalankan Aplikasi
+
+### 6.1 Clone repository
+
+```powershell
+git clone https://github.com/Hrsxr9/ai-predictor.git
+cd ai-predictor
+```
+
+### 6.2 Cek Python
+
+```powershell
+py -3.12 --version
+```
+
+### 6.3 Buat virtual environment
+
+```powershell
+py -3.12 -m venv .venv
+```
+
+### 6.4 Install dependency
+
+Normal:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+Jika `Activate.ps1` diblokir PowerShell, langsung gunakan Python dari `.venv`:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+### 6.5 Jalankan aplikasi
+
+```powershell
+.\.venv\Scripts\python.exe -m streamlit run app.py
+```
+
+Atau setelah venv aktif:
+
+```powershell
+python -m streamlit run app.py
+```
+
+Buka alamat yang ditampilkan Streamlit, biasanya `http://localhost:8501`.
+
+### 6.6 Cara cepat
+
+Windows juga dapat menjalankan:
+
+```text
+run.bat
+```
+
+## 7. Menggunakan Dataset Contoh
+
+Ini adalah alur demo paling cepat.
+
+```text
+1. Jalankan aplikasi
+2. Pilih sumber: Dataset contoh
+3. Buka menu Training Model
+4. Klik Latih model
+5. Tunggu training selesai
+6. Buka Prediksi Periode Berikutnya
+7. Pilih produk
+8. Klik Prediksi Harga Berikutnya
+9. Lihat estimasi harga
+```
+
+Dataset contoh dibuat otomatis apabila belum tersedia.
+
+## 8. Upload Dataset Sendiri
+
+Aplikasi menerima:
+
+```text
+.csv
+.xlsx
+.xls
+```
+
+### 8.1 CSV
+
+Delimiter yang dicoba otomatis:
+
+```text
+,   ;   tab   |
+```
+
+### 8.2 Excel
+
+Workbook boleh memiliki beberapa sheet. Aplikasi memilih sheet yang paling layak berdasarkan struktur dan jumlah data.
+
+### 8.3 Kolom minimum
+
+Dataset wajib mempunyai:
+
+- tanggal
+- produk
+- harga aktual
+
+Opsional:
+
+- kategori
+- previous_price
+- demand / qty / quantity / jumlah_terjual
+
+Jika `previous_price` tidak tersedia, sistem menurunkannya dari histori harga per produk.
+
+Jika demand tersedia, sistem membentuk `previous_demand` dari periode sebelumnya.
+
+### 8.4 Contoh dataset
+
+```csv
+date,product,category,price,demand
+2025-01-01,Beras,Sembako,13150,820
+2025-02-01,Beras,Sembako,13300,850
+2025-03-01,Beras,Sembako,13450,870
+```
+
+Nama kolom tidak harus persis sama. Sistem mempunyai pemetaan otomatis untuk variasi umum seperti `tanggal`, `nama_barang`, `harga_jual`, dan `qty`.
+
+## 9. Urutan Menggunakan Dataset Sendiri
+
+Setelah upload file, ikuti urutan ini:
+
+```text
+1. Pilih Upload Dataset
+        ↓
+2. Upload CSV / XLSX / XLS
+        ↓
+3. Sistem membaca dan memetakan kolom
+        ↓
+4. Buka menu Dataset
+        ↓
+5. Periksa data hasil preprocessing
+        ↓
+6. Buka Training Model
+        ↓
+7. Klik Latih model
+        ↓
+8. Lihat hasil evaluasi
+        ↓
+9. Buka Prediksi Periode Berikutnya
+        ↓
+10. Pilih produk
+        ↓
+11. Klik Prediksi Harga Berikutnya
+        ↓
+12. Lihat estimasi harga periode berikutnya
+```
+
+**Setiap kali dataset diganti, lakukan training ulang.**
+
+## 10. Contoh Prediksi
+
+Misalnya data terakhir produk:
+
+```text
+Produk           : Beras
+Periode terakhir : September 2026
+Harga terakhir   : Rp15.000
+Demand terakhir  : 950
+```
+
+Sistem otomatis menentukan target:
+
+```text
+Periode target   : Oktober 2026
+previous_price   : Rp15.000
+previous_demand  : 950
+```
+
+Random Forest kemudian menghasilkan estimasi harga Oktober 2026.
+
+Output aplikasi:
+
+```text
+Estimasi harga
+Perubahan nominal
+Perubahan persentase
+Periode prediksi
+```
+
+Pengguna **tidak perlu memasukkan demand atau harga masa depan**.
+
+## 11. Training dan Evaluasi
+
+Model utama:
 
 ```text
 Random Forest Regressor
 ```
 
-### Model pembanding
+Model pembanding:
 
 ```text
 Linear Regression
 Baseline = harga periode sebelumnya
 ```
 
-Pembagian data menggunakan **urutan waktu**, sehingga periode yang lebih baru menjadi data pengujian. Ini mensimulasikan skenario belajar dari masa lalu lalu mengestimasi periode berikutnya.
+Pembagian data menggunakan **urutan waktu**, bukan random. Periode lama digunakan untuk training dan periode lebih baru digunakan untuk testing.
 
-## Evaluasi
+Metode evaluasi:
 
-Model dievaluasi menggunakan:
+- MAE
+- MSE
+- RMSE
+- R²
 
-- **MAE** — rata-rata kesalahan absolut
-- **MSE** — rata-rata kuadrat kesalahan
-- **RMSE** — akar dari MSE dan masih dalam satuan harga
-- **R²** — kemampuan model menjelaskan variasi target pada data pengujian
+R² bukan accuracy classification.
 
-Nilai evaluasi hanya berlaku untuk dataset dan pembagian train/test pada eksperimen tersebut.
+## 12. Dataset Demo
 
-## Catatan Dataset Demo
+Dataset bawaan merupakan data sintetis untuk demonstrasi:
 
-Dataset bawaan adalah **data sintetis untuk demonstrasi pipeline machine learning**, bukan data harga pasar aktual.
-
-Karena itu:
-
-- hasil evaluasi tidak boleh dianggap sebagai performa pada seluruh pasar;
-- hasil prediksi tidak boleh dianggap sebagai harga pasar yang pasti.
-
-Untuk penggunaan nyata, gunakan data historis riil dan fitur yang relevan dengan produk yang diprediksi.
-
-## Troubleshooting
-
-### `python` tidak ditemukan
-
-Gunakan:
-
-```powershell
-py -3.12 -m streamlit run app.py
+```text
+480 baris
+6 produk
+80 periode bulanan per produk
+Januari 2020 – Agustus 2026
 ```
 
-atau:
+Dataset sintetis bukan data harga pasar nyata, sehingga hasil evaluasinya tidak boleh dianggap sebagai performa pada seluruh pasar.
+
+## 13. Troubleshooting
+
+### Python tidak ditemukan
+
+```powershell
+py -3.12 --version
+```
+
+### PowerShell menolak Activate.ps1
+
+Gunakan:
 
 ```powershell
 .\.venv\Scripts\python.exe -m streamlit run app.py
 ```
 
-### `streamlit` tidak ditemukan
-
-Gunakan:
+### Dependency belum terpasang
 
 ```powershell
-python -m streamlit run app.py
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-### Package belum terpasang
+### Model tidak tersedia atau dataset berubah
 
-```powershell
-python -m pip install -r requirements.txt
+Buka:
+
+```text
+Training Model → Latih model
 ```
 
-### Dataset berubah dan model lama tidak bisa dipakai
+## 14. AI-nya Di Mana?
 
-Itu memang dibuat sebagai pengaman. Setelah dataset berubah, jalankan:
+AI/ML berada pada proses:
 
-**Training Model → Latih model**
+```text
+Training Random Forest Regressor
+             ↓
+     Model belajar pola
+             ↓
+      Prediksi harga
+```
 
-## Penggunaan Akademik
+Streamlit hanya digunakan sebagai antarmuka aplikasi.
 
-Project ini dibuat untuk pembelajaran dan demonstrasi mata kuliah Kecerdasan Buatan.
+## 15. Batasan Sistem
+
+- Dataset demo masih sintetis.
+- Hasil prediksi bergantung pada kualitas data historis.
+- Faktor eksternal seperti inflasi, promo, cuaca, distribusi, dan kebijakan belum digunakan.
+- Prediksi merupakan estimasi model, bukan jaminan harga pasar.
+- Sistem berfokus pada satu periode berikutnya.
+
+## 16. Kesimpulan
+
+AI Price Predictor menerapkan **supervised machine learning pada masalah regression** untuk memperkirakan **harga produk pada periode berikutnya berdasarkan data historis**.
+
+```text
+Dataset
+→ Preprocessing
+→ Feature Engineering
+→ Training
+→ Evaluasi
+→ Model
+→ Data Terbaru
+→ Prediksi Periode Berikutnya
+```
+
+Model utama adalah **Random Forest Regressor**, dengan **Linear Regression** dan **baseline harga sebelumnya** sebagai pembanding.
