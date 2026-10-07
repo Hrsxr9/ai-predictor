@@ -151,9 +151,9 @@ def load_active_data(uploaded=None):
             duplicate_policy="reject",
         )
     except ValueError as exc:
-        st.error(f"CSV terbaca, tetapi validasi gagal: {exc}")
+        st.error(f"File terbaca, tetapi validasi gagal: {exc}")
         st.info(
-            "Periksa header dan isi CSV. Sistem sudah mencoba "
+            "Periksa header dan isi file. Sistem sudah mencoba "
             "pemetaan kolom dan format angka/tanggal secara otomatis."
         )
         st.dataframe(raw.head(10), use_container_width=True, hide_index=True)
@@ -182,19 +182,19 @@ def main():
 
     with st.sidebar:
         st.header("Dataset")
-        source = st.radio("Sumber", ["Dataset contoh", "Upload CSV"])
+        source = st.radio("Sumber", ["Dataset contoh", "Upload Dataset"])
         uploaded = st.file_uploader(
             "CSV",
             type=["csv", "xlsx", "xls"],
-            disabled=source != "Upload CSV",
+            disabled=source != "Upload Dataset",
             help=(
                 "CSV hingga 10 MB / 50.000 baris; Excel XLSX/XLS juga didukung. "
                 "Untuk Excel, sheet paling layak dipilih otomatis."
             ),
         )
 
-        if source == "Upload CSV" and uploaded is not None:
-            st.success("Pemetaan CSV: otomatis")
+        if source == "Upload Dataset" and uploaded is not None:
+            st.success("Pemetaan dataset: otomatis")
             mapping = st.session_state.get("mapping")
             if mapping:
                 st.caption(
@@ -219,11 +219,11 @@ def main():
         )
 
     active = load_active_data(
-        uploaded if source == "Upload CSV" else None
+        uploaded if source == "Upload Dataset" else None
     )
     if active[0] is None:
         st.info(
-            "Upload CSV sudah dibaca. Setelah pemetaan otomatis berhasil, "
+            "Upload dataset sudah dibaca. Setelah pemetaan otomatis berhasil, "
             "menu akan menggunakan dataset tersebut."
         )
         return
@@ -274,7 +274,7 @@ def main():
         st.subheader("Dataset aktif")
         st.write(f"Sumber: **{source_name}**")
 
-        if source == "Upload CSV" and st.session_state.get("mapping"):
+        if source == "Upload Dataset" and st.session_state.get("mapping"):
             with st.expander("Pemetaan otomatis"):
                 st.json(st.session_state["mapping"])
 
@@ -289,7 +289,6 @@ def main():
             "Baris valid": report.get("rows_out"),
             "Baris dibuang": report.get("rows_removed"),
             "Previous price kosong": report.get("previous_price_missing"),
-            "Previous demand kosong": report.get("previous_demand_missing"),
             "Previous demand kosong": report.get("previous_demand_missing"),
             "Demand kosong": report.get("demand_missing"),
             "Format sumber": st.session_state.get("uploaded_format", "CSV"),
