@@ -1,6 +1,6 @@
 # AI Price Predictor
 
-**AI Price Predictor** adalah aplikasi berbasis **Python + Streamlit + Scikit-learn** untuk memperkirakan **harga produk pada periode berikutnya** berdasarkan pola data historis.
+**AI Price Predictor** adalah aplikasi berbasis **Python + Streamlit + Scikit-learn** untuk memperkirakan **harga produk pada periode berikutnya** berdasarkan pola data historis. Sistem menerima dataset dalam format **CSV, XLSX, dan XLS**.
 
 Project ini dibuat untuk mata kuliah **Kecerdasan Buatan** dan berjalan **full local**, tanpa OpenAI API, Gemini API, OpenRouter, atau layanan AI eksternal.
 
@@ -198,6 +198,18 @@ Estimasi harga Agustus 2026 = hasil prediksi Random Forest
 ```
 
 Jadi pengguna **tidak perlu menebak atau mengisi data masa depan**.
+
+## Upload Dataset CSV atau Excel
+
+Pengguna dapat mengunggah `.csv`, `.xlsx`, atau `.xls`.
+
+Untuk CSV, delimiter koma, titik koma, tab, atau pipa dideteksi otomatis. Untuk Excel, sistem membaca workbook dan memilih worksheet yang paling layak berdasarkan jumlah kolom dan jumlah baris berisi data.
+
+Nama kolom tidak harus persis sama. Pemetaan otomatis mengenali variasi umum seperti `tanggal` / `date`, `nama_barang` / `produk`, `harga_jual` / `harga`, dan `qty` / `jumlah_terjual` sebagai kandidat fitur demand.
+
+Minimal dataset memiliki **tanggal, produk, dan harga aktual**. Kategori dan demand bersifat opsional. Jika `previous_price` tidak tersedia, sistem menurunkannya dari riwayat harga per produk. Jika demand tersedia, sistem menggunakan demand periode sebelumnya sebagai `previous_demand`.
+
+Struktur Excel dapat sama seperti contoh CSV di bagian berikutnya. Workbook dengan beberapa sheet tidak perlu dipisahkan manual; aplikasi akan memilih sheet yang paling layak.
 
 ## Menggunakan Dataset Sendiri
 
