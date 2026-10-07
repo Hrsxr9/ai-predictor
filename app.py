@@ -1,6 +1,7 @@
 """Streamlit UI untuk AI Price Predictor."""
 
 from hashlib import sha256
+from io import BytesIO
 from pathlib import Path
 
 import pandas as pd
@@ -39,6 +40,46 @@ def ensure_demo_data():
         )
 
 
+def read_uploaded_table(uploaded):
+    """Read CSV or Excel upload and choose the most useful worksheet."""
+    suffix = Path(uploaded.name).suffix.lower()
+    raw_bytes = uploaded.getvalue()
+
+    if suffix == ".csv":
+        return read_csv(raw_bytes), "CSV"
+
+    if suffix in {".xlsx", ".xls"}:
+        try:
+            sheets = pd.read_excel(BytesIO(raw_bytes), sheet_name=None)
+        except ImportError as exc:
+            raise ValueError(
+                "Pembacaan Excel memerlukan dependency Excel. Jalankan "
+                "python -m pip install -r requirements.txt."
+            ) from exc
+        except Exception as exc:
+            raise ValueError(f"File Excel tidak dapat dibaca: {exc}") from exc
+
+        candidates = []
+        for sheet_name, sheet in sheets.items():
+            if sheet is None or sheet.empty:
+                continue
+            usable = sheet.dropna(how="all").copy()
+            candidates.append(
+                (len(usable.columns), len(usable), str(sheet_name), usable)
+            )
+
+        if not candidates:
+            raise ValueError("Workbook Excel tidak memiliki sheet berisi data.")
+
+        _, _, sheet_name, selected = max(
+            candidates,
+            key=lambda item: (item[0], item[1]),
+        )
+        return selected.astype(object), f"Excel · sheet '{sheet_name}'"
+
+    raise ValueError("Format file tidak didukung. Gunakan CSV, XLSX, atau XLS.")
+
+
 def load_active_data(uploaded=None):
     if uploaded is None:
         for key in (
@@ -65,7 +106,12 @@ def load_active_data(uploaded=None):
             st.session_state["uploaded_name"],
         )
 
-    raw = read_csv(raw_bytes)
+    try:
+        raw, detected_format = read_uploaded_table(uploaded)
+    except ValueError as exc:
+        st.error(str(exc))
+        return None, None, uploaded.name
+
     mapping = infer_mapping(raw)
 
     required_missing = [
@@ -117,6 +163,7 @@ def load_active_data(uploaded=None):
     st.session_state["uploaded_frame"] = frame
     st.session_state["uploaded_report"] = report
     st.session_state["uploaded_name"] = uploaded.name
+    st.session_state["uploaded_format"] = detected_format
     st.session_state["mapping"] = mapping
     return frame, report, uploaded.name
 
@@ -138,11 +185,11 @@ def main():
         source = st.radio("Sumber", ["Dataset contoh", "Upload CSV"])
         uploaded = st.file_uploader(
             "CSV",
-            type=["csv"],
+            type=["csv", "xlsx", "xls"],
             disabled=source != "Upload CSV",
             help=(
-                "CSV hingga 10 MB / 50.000 baris. Delimiter koma, titik koma, "
-                "tab, atau pipa dideteksi otomatis."
+                "CSV hingga 10 MB / 50.000 baris; Excel XLSX/XLS juga didukung. "
+                "Untuk Excel, sheet paling layak dipilih otomatis."
             ),
         )
 
@@ -243,7 +290,9 @@ def main():
             "Baris dibuang": report.get("rows_removed"),
             "Previous price kosong": report.get("previous_price_missing"),
             "Previous demand kosong": report.get("previous_demand_missing"),
+            "Previous demand kosong": report.get("previous_demand_missing"),
             "Demand kosong": report.get("demand_missing"),
+            "Format sumber": st.session_state.get("uploaded_format", "CSV"),
         })
 
     elif page == "Training Model":
