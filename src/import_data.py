@@ -13,7 +13,7 @@ ALIASES = {
     "product": ["product", "produk", "nama_barang", "nama_produk", "barang", "komoditas", "product_name", "item", "commodity", "name", "title", "nama_komoditas", "item_name", "product_id", "sku"],
     "category": ["category", "kategori", "kategori_barang", "kategori_produk", "product_category"],
     "previous_price": ["previous_price", "harga_sebelumnya", "harga_lalu", "last_price", "prev_price"],
-    "demand": ["demand", "permintaan", "jumlah_permintaan", "estimated_demand"],
+    "demand": ["demand", "permintaan", "jumlah_permintaan", "estimated_demand", "quantity", "qty", "jumlah", "jumlah_terjual", "terjual", "penjualan", "sales", "units_sold"],
     "price": ["price", "harga", "harga_barang", "harga_satuan", "unit_price", "selling_price", "price_idr"],
 }
 DATE_FORMATS = {
