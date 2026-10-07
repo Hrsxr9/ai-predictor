@@ -9,12 +9,12 @@ from src.preprocessing import COLUMNS, DataValidationError, clean_data
 from src.auto_import import AUTO_NUMBER, parse_dates_auto, parse_numbers_auto
 
 ALIASES = {
-    "date": ["date", "tanggal", "tgl", "tanggal_harga", "tanggal_transaksi", "transaction_date", "order_date", "datetime", "timestamp", "waktu", "periode", "bulan"],
-    "product": ["product", "produk", "nama_barang", "nama_produk", "barang", "komoditas", "product_name", "item", "commodity", "name", "title", "nama_komoditas", "item_name", "product_id", "sku"],
+    "date": ["date", "tanggal", "tgl", "tanggal_harga", "tanggal_transaksi", "transaction_date", "order_date", "datetime", "timestamp", "waktu", "periode", "bulan", "waktu_pesanan_dibuat", "waktu_order", "order_time"],
+    "product": ["product", "produk", "nama_barang", "nama_produk", "barang", "komoditas", "product_name", "item", "commodity", "name", "title", "nama_komoditas", "item_name", "product_id", "sku", "product_categories", "kategori_produk", "kategori_barang", "nama_kategori_produk"],
     "category": ["category", "kategori", "kategori_barang", "kategori_produk", "product_category"],
     "previous_price": ["previous_price", "harga_sebelumnya", "harga_lalu", "last_price", "prev_price"],
-    "demand": ["demand", "permintaan", "jumlah_permintaan", "estimated_demand", "quantity", "qty", "jumlah", "jumlah_terjual", "terjual", "penjualan", "sales", "units_sold"],
-    "price": ["price", "harga", "harga_barang", "harga_satuan", "unit_price", "selling_price", "price_idr"],
+    "demand": ["demand", "permintaan", "jumlah_permintaan", "estimated_demand", "quantity", "qty", "jumlah", "jumlah_terjual", "terjual", "penjualan", "sales", "units_sold", "total_qty", "total_quantity"],
+    "price": ["price", "harga", "harga_barang", "harga_satuan", "unit_price", "selling_price", "price_idr", "harga_jual", "harga_total", "total_harga", "total_pembayaran", "total_payment", "nilai_transaksi", "transaction_value", "order_value"],
 }
 DATE_FORMATS = {
     "YYYY-MM-DD (2026-01-31)": "%Y-%m-%d",
