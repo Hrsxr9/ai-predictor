@@ -41,7 +41,7 @@ def ensure_demo_data():
 
 
 def read_uploaded_table(uploaded):
-    """Read CSV or Excel upload and choose the most useful worksheet."""
+    """Read CSV or Excel and select the sheet with the strongest usable schema."""
     suffix = Path(uploaded.name).suffix.lower()
     raw_bytes = uploaded.getvalue()
 
@@ -64,17 +64,41 @@ def read_uploaded_table(uploaded):
             if sheet is None or sheet.empty:
                 continue
             usable = sheet.dropna(how="all").copy()
+            mapping = infer_mapping(usable)
+            required_hits = sum(
+                mapping.get(role) is not None
+                for role in ("date", "product", "price")
+            )
+            optional_hits = sum(
+                mapping.get(role) is not None
+                for role in ("category", "demand", "previous_price")
+            )
+            # Schema coverage takes priority; populated width is the tie-breaker.
             candidates.append(
-                (len(usable.columns), len(usable), str(sheet_name), usable)
+                (
+                    required_hits,
+                    optional_hits,
+                    len(usable.columns),
+                    len(usable),
+                    str(sheet_name),
+                    usable,
+                )
             )
 
         if not candidates:
             raise ValueError("Workbook Excel tidak memiliki sheet berisi data.")
 
-        _, _, sheet_name, selected = max(
+        required_hits, optional_hits, _, _, sheet_name, selected = max(
             candidates,
-            key=lambda item: (item[0], item[1]),
+            key=lambda item: item[:4],
         )
+
+        if required_hits < 2:
+            raise ValueError(
+                "Tidak ditemukan sheet Excel yang cukup mirip dengan dataset "
+                "harga/transaksi. Pastikan ada tanggal, produk, dan nilai harga."
+            )
+
         return selected.astype(object), f"Excel · sheet '{sheet_name}'"
 
     raise ValueError("Format file tidak didukung. Gunakan CSV, XLSX, atau XLS.")
