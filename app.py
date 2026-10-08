@@ -9,7 +9,7 @@ import streamlit as st
 
 from src.auto_import import AUTO_NUMBER
 from src.generate_data import generate_dataset
-from src.import_data import import_dataset, infer_mapping
+from src.import_data import analyze_mapping, import_dataset, infer_mapping
 from src.preprocessing import (
     DEFAULT_DATA,
     clean_data,
@@ -113,6 +113,7 @@ def load_active_data(uploaded=None):
         return None, None, uploaded.name
 
     mapping = infer_mapping(raw)
+    mapping_analysis = analyze_mapping(raw, mapping)
 
     required_missing = [
         key for key in ("date", "product", "price")
@@ -121,12 +122,12 @@ def load_active_data(uploaded=None):
 
     if required_missing:
         st.warning(
-            "Pemetaan otomatis belum menemukan: "
+            "Smart Mapping belum menemukan: "
             + ", ".join(required_missing)
-            + ". Periksa nama kolom CSV atau gunakan kolom yang jelas "
-              "seperti tanggal, produk, dan harga."
+            + ". Sistem mencoba membaca nama kolom, tipe data, dan pola isi. "
+              "Periksa struktur dataset jika peran wajib belum dapat ditentukan."
         )
-        st.subheader("Kolom CSV terdeteksi")
+        st.subheader("Kolom dataset terdeteksi")
         st.dataframe(
             pd.DataFrame(
                 {
@@ -165,6 +166,7 @@ def load_active_data(uploaded=None):
     st.session_state["uploaded_name"] = uploaded.name
     st.session_state["uploaded_format"] = detected_format
     st.session_state["mapping"] = mapping
+    st.session_state["mapping_analysis"] = mapping_analysis
     return frame, report, uploaded.name
 
 
@@ -275,8 +277,19 @@ def main():
         st.write(f"Sumber: **{source_name}**")
 
         if source == "Upload Dataset" and st.session_state.get("mapping"):
-            with st.expander("Pemetaan otomatis"):
-                st.json(st.session_state["mapping"])
+            mapping_analysis = st.session_state.get("mapping_analysis")
+            with st.expander("Smart Mapping"):
+                if mapping_analysis:
+                    st.caption(
+                        f"Jenis dataset terdeteksi: **{mapping_analysis['dataset_type']}**"
+                    )
+                    st.dataframe(
+                        mapping_analysis["details"],
+                        use_container_width=True,
+                        hide_index=True,
+                    )
+                else:
+                    st.json(st.session_state["mapping"])
 
         st.dataframe(
             frame,
@@ -292,6 +305,11 @@ def main():
             "Previous demand kosong": report.get("previous_demand_missing"),
             "Demand kosong": report.get("demand_missing"),
             "Format sumber": st.session_state.get("uploaded_format", "CSV"),
+            "Jenis dataset": (
+                st.session_state.get("mapping_analysis", {}).get("dataset_type", "—")
+                if isinstance(st.session_state.get("mapping_analysis"), dict)
+                else "—"
+            ),
         })
 
     elif page == "Training Model":
