@@ -341,8 +341,6 @@ def import_dataset(
     transaction_mode = is_transaction_dataset(raw, mapping)
     if transaction_mode:
         duplicate_policy = "mean"
-        mapped["__source_quantity"] = mapped["demand"].copy()
-        mapped["__source_payment"] = mapped["price"].copy()
 
     original = mapped[["date", "product", "price"]].copy()
 
@@ -385,8 +383,10 @@ def import_dataset(
         mapped[column] = pd.to_numeric(numbers, errors="coerce")
 
     if transaction_mode:
-        quantity = mapped["__source_quantity"].where(mapped["__source_quantity"] > 0)
-        payment = mapped["__source_payment"].where(mapped["__source_payment"] > 0)
+        quantity = pd.to_numeric(mapped["demand"], errors="coerce")
+        payment = pd.to_numeric(mapped["price"], errors="coerce")
+        quantity = quantity.where(np.isfinite(quantity) & quantity.gt(0))
+        payment = payment.where(np.isfinite(payment) & payment.gt(0))
         mapped["price"] = payment / quantity
         mapped["demand"] = quantity
 
