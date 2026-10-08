@@ -107,6 +107,7 @@ ai-predictor/
 ```powershell
 git clone https://github.com/Hrsxr9/ai-predictor.git
 cd ai-predictor
+bisa langsung download zipnya. nanti langsung ke step 6.3
 ```
 
 ### 6.2 Cek Python
@@ -126,6 +127,8 @@ py -3.12 -m venv .venv
 Normal:
 
 ```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+<<<noted: jika pas run .\.venv\Scripts\Activate.ps1 gabisa maka run perintah di atas>>>
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
