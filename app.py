@@ -87,6 +87,9 @@ def load_active_data(uploaded=None):
             "uploaded_frame",
             "uploaded_report",
             "uploaded_name",
+            "uploaded_format",
+            "mapping",
+            "mapping_analysis",
         ):
             st.session_state.pop(key, None)
 
@@ -186,7 +189,7 @@ def main():
         st.header("Dataset")
         source = st.radio("Sumber", ["Dataset contoh", "Upload Dataset"])
         uploaded = st.file_uploader(
-            "CSV",
+            "Dataset (CSV / XLSX / XLS)",
             type=["csv", "xlsx", "xls"],
             disabled=source != "Upload Dataset",
             help=(
