@@ -216,7 +216,7 @@ Opsional:
 
 Jika `previous_price` tidak tersedia, sistem menurunkannya dari histori harga per produk.
 
-Jika demand tersedia, sistem membentuk `previous_demand` dari periode sebelumnya.
+Jika demand tersedia, sistem membentuk `previous_demand` dari periode sebelumnya. Untuk dataset transaksi/e-commerce, sistem dapat mengenali kolom seperti `Waktu Pesanan Dibuat`, `product_categories`, `Total Pembayaran`, dan `total_qty`, lalu mengubah transaksi menjadi observasi harga yang dapat dipakai model. Untuk pola transaksi ini, harga yang dipakai adalah **estimasi harga per unit = Total Pembayaran ÷ total_qty**, kemudian diagregasi per produk dan tanggal.
 
 ### 8.4 Contoh dataset
 
@@ -227,7 +227,7 @@ date,product,category,price,demand
 2025-03-01,Beras,Sembako,13450,870
 ```
 
-Nama kolom tidak harus persis sama. Sistem mempunyai pemetaan otomatis untuk variasi umum seperti `tanggal`, `nama_barang`, `harga_jual`, dan `qty`.
+Nama kolom tidak harus persis sama. **Smart Mapping** menganalisis nama kolom, tipe data, dan pola isi untuk menentukan peran seperti tanggal, produk, harga, dan demand. Hasil pemetaan dapat diperiksa pada menu **Dataset → Smart Mapping** beserta tingkat keyakinan dan alasannya.
 
 ## 9. Urutan Menggunakan Dataset Sendiri
 
