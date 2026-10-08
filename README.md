@@ -129,7 +129,7 @@ Normal:
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
-noted: jika pas run .\.venv\Scripts\Activate.ps1 gabisa maka run perintah di atas
+noted: jika pas run .\.venv\Scripts\Activate.ps1 gabisa maka run perintah di atas terlebih dahulu.
 
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
