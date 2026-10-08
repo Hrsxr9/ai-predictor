@@ -178,6 +178,28 @@ Ini adalah alur demo paling cepat.
 
 Dataset contoh dibuat otomatis apabila belum tersedia.
 
+## Smart Mapping
+
+Saat file di-upload, aplikasi tidak hanya mencocokkan nama kolom. **Smart Mapping** menganalisis nama kolom, tipe data, pola isi, dan hubungan antar-kolom untuk menentukan peran data.
+
+Hasilnya ditampilkan pada menu **Dataset → Smart Mapping**, termasuk:
+
+- peran yang ditemukan (tanggal, produk, harga, demand, dan lainnya)
+- nama kolom asli
+- tingkat keyakinan
+- alasan pemetaan
+
+Untuk dataset transaksi/e-commerce, aplikasi juga dapat mengenali pola seperti:
+
+```text
+Waktu Pesanan Dibuat → tanggal
+product_categories   → kelompok produk
+Total Pembayaran     → nilai harga/transaksi
+total_qty            → jumlah/demand
+```
+
+Jika tersedia `Total Pembayaran` dan `total_qty`, sistem dapat membentuk **proxy harga per unit = Total Pembayaran ÷ total_qty**, lalu mengagregasikan transaksi per produk dan tanggal sebelum training. Ini adalah transformasi data, bukan klaim bahwa kolom tersebut selalu merupakan harga satuan asli.
+
 ## 8. Upload Dataset Sendiri
 
 Aplikasi menerima:
